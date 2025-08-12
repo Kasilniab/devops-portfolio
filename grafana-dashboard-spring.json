@@ -1,0 +1,114 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "title": "Spring Boot – Portfolio (Health & Metrics)",
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Uptime (min)",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "(time() - application_started_time_seconds{namespace=\"app\"}) / 60",
+          "legendFormat": "uptime"
+        }
+      ]
+    },
+    {
+      "type": "gauge",
+      "title": "CPU (process %) ",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } },
+      "targets": [
+        { "expr": "process_cpu_usage{namespace=\"app\"} * 100", "legendFormat": "cpu" }
+      ]
+    },
+    {
+      "type": "gauge",
+      "title": "JVM Heap Used (MB)",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "fieldConfig": { "defaults": { "unit": "megabytes" } },
+      "targets": [
+        { "expr": "sum(jvm_memory_used_bytes{namespace=\"app\",area=\"heap\"}) / 1024 / 1024", "legendFormat": "heap" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests rate (req/s)",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{namespace=\"app\"}[5m]))",
+          "legendFormat": "all"
+        },
+        {
+          "expr": "sum by (status) (rate(http_server_requests_seconds_count{namespace=\"app\"}[5m]))",
+          "legendFormat": "status {{status}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Request latency p95 (s)",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{namespace=\"app\"}[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP by outcome",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(http_server_requests_seconds_count{namespace=\"app\"}[5m]))",
+          "legendFormat": "{{outcome}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM Threads",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "jvm_threads_live_threads{namespace=\"app\"}",
+          "legendFormat": "live"
+        },
+        {
+          "expr": "jvm_threads_daemon_threads{namespace=\"app\"}",
+          "legendFormat": "daemon"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "pod",
+        "label": "Pod",
+        "datasource": "${DS_PROMETHEUS}",
+        "query": "label_values(http_server_requests_seconds_count{namespace=\"app\"}, pod)",
+        "includeAll": true,
+        "refresh": 1
+      }
+    ]
+  }
+}
+
